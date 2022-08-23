@@ -19,7 +19,7 @@ exports.up = function (db) {
         id: { type: 'int', primaryKey: true, autoIncrement: true },
         title: { type: 'string', length: 255, notNull: true },
         path: { type: 'string', length: 255, notNull: true },
-        date: { type: 'date', notNull: true },
+        date: { type: 'string', notNull: false },
     })
 }
 
