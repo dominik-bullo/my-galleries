@@ -20,7 +20,12 @@ exports.up = function (db) {
         user_id: {
             type: 'int',
             notNull: true,
-            foreignKey: { name: 'fk_comments_user_id', table: 'users', mapping: 'id', rules: { onDelete: 'RESTRICT' } },
+            foreignKey: {
+                name: 'fk_comments_user_id',
+                table: 'users',
+                mapping: 'id',
+                rules: { onDelete: 'RESTRICT' },
+            },
         },
         pic_id: {
             type: 'int',
@@ -32,7 +37,11 @@ exports.up = function (db) {
                 rules: { onDelete: 'RESTRICT' },
             },
         },
-        timestamp: { type: 'timestamp', notNull: true },
+        timestamp: {
+            type: 'timestamp',
+            notNull: true,
+            defaultValue: new String('CURRENT_TIMESTAMP'),
+        },
         text: { type: 'string', length: 2000, notNull: true },
     })
 }
