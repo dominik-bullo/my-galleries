@@ -1,11 +1,13 @@
-import { debug } from 'console'
 import fs from 'fs'
 import path from 'path'
+import sharp from 'sharp'
 import { Gallery, GalleryStore } from '../models/gallery'
 import { Picture, PictureStore } from '../models/picture'
 
 // image directory
 const srcpath = path.resolve('./images')
+// child directory for thumbnails
+export const thumbpath = '/thumbs'
 
 // get foldernames as async function
 const getFoldernamesAsync = async (): Promise<string[]> => {
@@ -23,16 +25,16 @@ const getFoldernamesAsync = async (): Promise<string[]> => {
 const isDate = (str: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(str)
 
 // create gallery objects from foldernames as async function
-const getGalleriesAsync = async (): Promise<Omit<Gallery, 'id'>[]> => {
+const getGalleriesAsync = async (): Promise<Omit<Gallery, 'id' | 'images'>[]> => {
     const foldernames = await getFoldernamesAsync()
-    const galleries: Omit<Gallery, 'id'>[] = []
+    const galleries: Omit<Gallery, 'id' | 'images'>[] = []
     foldernames.forEach((foldername) => {
         const date = foldername.split(' ')[0]
         const title = foldername.split(' ').slice(1).join(' ')
         const gallery = {
             title: isDate(date) ? title : foldername,
             path: path.join(srcpath, foldername),
-            date: isDate(date) ? date : null,
+            date: isDate(date) ? date : '0',
         }
         galleries.push(gallery)
     })
@@ -60,7 +62,10 @@ export default class ImageDetection {
         const createdGalleries: Gallery[] = []
         const newGalleries = galleries.filter((gallery) => {
             return !existingGalleries.some((existingGallery) => {
-                return gallery.path === existingGallery.path
+                return (
+                    gallery.title === existingGallery.title &&
+                    gallery.date === existingGallery.date
+                )
             })
         })
         if (newGalleries.length > 0) {
@@ -74,14 +79,30 @@ export default class ImageDetection {
                 const filenames = await getFilenamesAsync(gallery.path)
                 if (filenames.length > 0) {
                     console.log(`Adding ${filenames.length} pictures...`)
-                    const newPictures: Omit<Picture, 'id'>[] = []
+                    const newPictures: Omit<Picture, 'id' | 'path'>[] = []
                     const pictureStore = new PictureStore()
+                    fs.access(path.join(gallery.path, thumbpath), (err) => {
+                        if (err) {
+                            fs.mkdirSync(path.join(gallery.path, thumbpath))
+                        }
+                    })
                     for (const filename of filenames) {
                         const picture = {
                             gallery_id: gallery.id,
                             filename: filename,
                         }
                         newPictures.push(picture)
+                        try {
+                            sharp(path.join(gallery.path, filename))
+                                .resize({
+                                    fit: sharp.fit.inside,
+                                    width: 400,
+                                    height: 400,
+                                })
+                                .toFile(path.join(gallery.path, thumbpath, filename))
+                        } catch (err) {
+                            console.log(`Cannot create thumbnail for ${filename}: ${err}`)
+                        }
                     }
                     await pictureStore.createMany(newPictures)
                 }

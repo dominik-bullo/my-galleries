@@ -9,7 +9,7 @@ export interface Comment {
 }
 
 export class CommentStore {
-    async create(newComment: Omit<Comment, 'id'>): Promise<Comment> {
+    async create(newComment: Omit<Comment, 'id' | 'timestamp'>): Promise<Comment> {
         try {
             const conn = await Client.connect()
             const sql =
@@ -26,11 +26,12 @@ export class CommentStore {
         }
     }
 
-    async index(): Promise<Comment[]> {
+    async showByPicId(pic_id: number): Promise<Comment[]> {
         try {
             const conn = await Client.connect()
-            const sql = 'SELECT * FROM comments'
-            const result = await conn.query(sql)
+            const sql =
+                'SELECT id, user_id, pic_id, timestamp, text FROM comments WHERE pic_id = $1'
+            const result = await conn.query(sql, [pic_id])
             conn.release()
             return result.rows
         } catch (err) {

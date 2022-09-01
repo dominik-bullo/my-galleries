@@ -3,6 +3,7 @@ import Client from '../database'
 export interface Picture {
     id: number
     gallery_id: number
+    path: string
     filename: string
 }
 
@@ -23,7 +24,7 @@ export class PictureStore {
         }
     }
 
-    async createMany(pictures: Omit<Picture, 'id'>[]): Promise<Picture[]> {
+    async createMany(pictures: Omit<Picture, 'id' | 'path'>[]): Promise<Picture[]> {
         try {
             const conn = await Client.connect()
             const sql = `INSERT INTO pictures (gallery_id, filename) VALUES ${pictures
@@ -37,15 +38,16 @@ export class PictureStore {
         }
     }
 
-    async index(): Promise<Picture[]> {
+    async show(id: number): Promise<Picture> {
         try {
             const conn = await Client.connect()
-            const sql = 'SELECT * FROM pictures'
-            const result = await conn.query(sql)
+            const sql =
+                'SELECT P.id, gallery_id, path, filename FROM pictures P LEFT JOIN galleries G ON P.gallery_id = G.id WHERE P.id = $1'
+            const result = await conn.query(sql, [id])
             conn.release()
-            return result.rows
+            return result.rows[0]
         } catch (err) {
-            throw new Error(`Cannot get pictures: ${err}`)
+            throw new Error(`Cannot get picture: ${err}`)
         }
     }
 }
